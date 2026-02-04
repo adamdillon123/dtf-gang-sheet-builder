@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  DRAFT
+  UNPAID
+  PAID
+  IN_PRODUCTION
+  COMPLETE
+}
+
+enum OrderType {
+  GANG_SHEET
+  SINGLES
+}
+
+enum SourceType {
+  UPLOAD
+  LIBRARY
+}
+
+enum BuilderStatus {
+  DRAFT
+  COMPLETE
+}
+
+enum BatchStatus {
+  DRAFT
+  GENERATED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String
+}
+
+model Settings {
+  id                  String  @id @default(cuid())
+  safeMarginIn        Float   @default(0.15)
+  spacingIn           Float   @default(0.1)
+  gridIn              Float   @default(0.25)
+  maxBatchLengthIn    Float   @default(60)
+  watermarkText       String  @default("WALL2WALLDTF")
+  previewMaxPx        Int     @default(1200)
+  roundingIncrementIn Float   @default(0.25)
+  minWidthIn          Float   @default(2)
+  minHeightIn         Float   @default(2)
+  minBillableSqIn     Float   @default(4)
+}
+
+model PricingTier {
+  id           String  @id @default(cuid())
+  minSqIn      Float
+  maxSqIn      Float?
+  ratePerSqIn  Float
+  sortOrder    Int
+}
+
+model Asset {
+  id          String   @id @default(cuid())
+  title       String
+  category    String?
+  tags        String[]
+  originalKey String
+  previewKey  String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Upload {
+  id        String   @id @default(cuid())
+  originalKey String
+  filename  String
+  widthPx   Int
+  heightPx  Int
+  createdAt DateTime @default(now())
+}
+
+model BuilderSession {
+  id           String        @id @default(cuid())
+  tokenHash    String
+  status       BuilderStatus @default(DRAFT)
+  sheetHeightIn Float
+  isAutoHeight Boolean @default(false)
+  createdAt    DateTime @default(now())
+  completedAt  DateTime?
+  exportKey    String?
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  status        OrderStatus @default(UNPAID)
+  type          OrderType
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  totalSqIn     Float?
+  tierRate      Float?
+  subtotalCents Int?
+  exportKey     String?
+  notes         String?
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id               String      @id @default(cuid())
+  orderId          String
+  order            Order       @relation(fields: [orderId], references: [id])
+  sourceType       SourceType
+  uploadId         String?
+  upload           Upload?     @relation(fields: [uploadId], references: [id])
+  assetId          String?
+  asset            Asset?      @relation(fields: [assetId], references: [id])
+  requestedWidthIn Float
+  requestedHeightIn Float
+  billableWidthIn  Float
+  billableHeightIn Float
+  billableSqIn     Float
+  qty              Int
+  rotationDeg      Float       @default(0)
+  xIn              Float?
+  yIn              Float?
+  effectiveDpiMin  Float?
+  batchSheetItems  BatchSheetItem[]
+}
+
+model BatchSheet {
+  id        String      @id @default(cuid())
+  createdAt DateTime    @default(now())
+  exportKey String
+  lengthIn  Float
+  status    BatchStatus @default(GENERATED)
+  items     BatchSheetItem[]
+}
+
+model BatchSheetItem {
+  id           String     @id @default(cuid())
+  batchSheetId String
+  batchSheet   BatchSheet @relation(fields: [batchSheetId], references: [id])
+  orderItemId  String
+  orderItem    OrderItem  @relation(fields: [orderItemId], references: [id])
+  xIn          Float
+  yIn          Float
+  widthIn      Float
+  heightIn     Float
+  rotationDeg  Float @default(0)
+}
