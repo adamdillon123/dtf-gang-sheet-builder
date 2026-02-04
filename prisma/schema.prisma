@@ -128,7 +128,7 @@ model OrderItem {
   xIn              Float?
   yIn              Float?
   effectiveDpiMin  Float?
-  batchSheetItems  BatchSheetItem[]
+  batchSheetItem   BatchSheetItem?
 }
 
 model BatchSheet {
@@ -144,7 +144,7 @@ model BatchSheetItem {
   id           String     @id @default(cuid())
   batchSheetId String
   batchSheet   BatchSheet @relation(fields: [batchSheetId], references: [id])
-  orderItemId  String
+  orderItemId  String     @unique
   orderItem    OrderItem  @relation(fields: [orderItemId], references: [id])
   xIn          Float
   yIn          Float
