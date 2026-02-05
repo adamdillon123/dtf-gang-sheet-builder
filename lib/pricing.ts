@@ -15,19 +15,10 @@ export type BillableDimensions = {
   billableWidthIn: number;
   billableHeightIn: number;
   billableSqIn: number;
-  areaUnits: number;
 };
 
 export function roundToIncrement(value: number, increment: number) {
   return Math.ceil(value / increment) * increment;
-}
-
-export function toIncrementUnits(value: number, increment: number) {
-  return Math.ceil(value / increment);
-}
-
-export function incrementDenominator(increment: number) {
-  return Math.round(1 / increment);
 }
 
 export function computeBillableDimensions(
@@ -37,17 +28,14 @@ export function computeBillableDimensions(
 ): BillableDimensions {
   const width = Math.max(widthIn, settings.minWidthIn);
   const height = Math.max(heightIn, settings.minHeightIn);
-  const unitDenom = incrementDenominator(settings.roundingIncrementIn);
-  const widthUnits = toIncrementUnits(width, settings.roundingIncrementIn);
-  const heightUnits = toIncrementUnits(height, settings.roundingIncrementIn);
-  const areaUnits = widthUnits * heightUnits;
-  const minAreaUnits = Math.ceil(settings.minBillableSqIn * unitDenom * unitDenom);
-  const billableAreaUnits = Math.max(areaUnits, minAreaUnits);
-  const billableWidthIn = widthUnits * settings.roundingIncrementIn;
-  const billableHeightIn = heightUnits * settings.roundingIncrementIn;
-  const billableSqIn = billableAreaUnits / (unitDenom * unitDenom);
+  const billableWidthIn = roundToIncrement(width, settings.roundingIncrementIn);
+  const billableHeightIn = roundToIncrement(height, settings.roundingIncrementIn);
+  const billableSqIn = Math.max(
+    billableWidthIn * billableHeightIn,
+    settings.minBillableSqIn
+  );
 
-  return { billableWidthIn, billableHeightIn, billableSqIn, areaUnits: billableAreaUnits };
+  return { billableWidthIn, billableHeightIn, billableSqIn };
 }
 
 export function selectTier(totalSqIn: number, tiers: PricingTier[]) {
@@ -59,14 +47,4 @@ export function selectTier(totalSqIn: number, tiers: PricingTier[]) {
         (tier.maxSqIn === null || totalSqIn <= tier.maxSqIn)
     ) ?? sorted[sorted.length - 1]
   );
-}
-
-export function subtotalCentsFromAreaUnits(
-  totalAreaUnits: number,
-  increment: number,
-  ratePerSqIn: number
-) {
-  const unitDenom = incrementDenominator(increment);
-  const rateCents = Math.round(ratePerSqIn * 100);
-  return Math.round((totalAreaUnits * rateCents) / (unitDenom * unitDenom));
 }

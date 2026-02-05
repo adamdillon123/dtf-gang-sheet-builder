@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import {
-  computeBillableDimensions,
-  selectTier,
-  subtotalCentsFromAreaUnits
-} from '@/lib/pricing';
+import { computeBillableDimensions, selectTier } from '@/lib/pricing';
 import { uploadBuffer } from '@/lib/storage';
 import sharp from 'sharp';
 
@@ -48,19 +44,13 @@ export async function POST(request: Request) {
     uploadRecords[index] = upload;
   }
 
-  const pricingSettings = {
-    roundingIncrementIn: settings?.roundingIncrementIn ?? 0.25,
-    minWidthIn: settings?.minWidthIn ?? 2,
-    minHeightIn: settings?.minHeightIn ?? 2,
-    minBillableSqIn: settings?.minBillableSqIn ?? 4
-  };
-
   const itemsData = payload.map((item, index) => {
-    const billable = computeBillableDimensions(
-      item.widthIn,
-      item.heightIn,
-      pricingSettings
-    );
+    const billable = computeBillableDimensions(item.widthIn, item.heightIn, {
+      roundingIncrementIn: settings?.roundingIncrementIn ?? 0.25,
+      minWidthIn: settings?.minWidthIn ?? 2,
+      minHeightIn: settings?.minHeightIn ?? 2,
+      minBillableSqIn: settings?.minBillableSqIn ?? 4
+    });
     return {
       sourceType: 'UPLOAD' as const,
       uploadId: uploadRecords[index]?.id,
@@ -70,8 +60,7 @@ export async function POST(request: Request) {
       billableHeightIn: billable.billableHeightIn,
       billableSqIn: billable.billableSqIn,
       qty: item.qty,
-      rotationDeg: 0,
-      areaUnits: billable.areaUnits
+      rotationDeg: 0
     };
   });
 
@@ -79,18 +68,8 @@ export async function POST(request: Request) {
     (sum, item) => sum + item.billableSqIn * item.qty,
     0
   );
-  const totalAreaUnits = itemsData.reduce(
-    (sum, item) => sum + item.areaUnits * item.qty,
-    0
-  );
   const tier = tiers.length > 0 ? selectTier(totalSqIn, tiers) : null;
-  const subtotalCents = tier
-    ? subtotalCentsFromAreaUnits(
-        totalAreaUnits,
-        pricingSettings.roundingIncrementIn,
-        tier.ratePerSqIn
-      )
-    : 0;
+  const subtotal = tier ? Math.round(totalSqIn * tier.ratePerSqIn * 100) : 0;
 
   const order = await prisma.order.create({
     data: {
@@ -98,12 +77,12 @@ export async function POST(request: Request) {
       type: 'SINGLES',
       totalSqIn,
       tierRate: tier?.ratePerSqIn ?? null,
-      subtotalCents,
+      subtotalCents: subtotal,
       items: {
-        create: itemsData.map(({ areaUnits, ...item }) => item)
+        create: itemsData
       }
     }
   });
 
-  return NextResponse.json({ orderId: order.id, subtotalCents });
+  return NextResponse.json({ orderId: order.id });
 }

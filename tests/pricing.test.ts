@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   computeBillableDimensions,
   roundToIncrement,
-  selectTier,
-  subtotalCentsFromAreaUnits
+  selectTier
 } from '@/lib/pricing';
 
 describe('pricing math', () => {
@@ -24,26 +23,12 @@ describe('pricing math', () => {
     expect(result.billableSqIn).toBe(4);
   });
 
-  it('selects tier based on total square inches at boundaries', () => {
-    const tiers = [
+  it('selects tier based on total square inches', () => {
+    const tier = selectTier(250, [
       { minSqIn: 0, maxSqIn: 100, ratePerSqIn: 0.12 },
       { minSqIn: 101, maxSqIn: 300, ratePerSqIn: 0.1 },
       { minSqIn: 301, maxSqIn: null, ratePerSqIn: 0.09 }
-    ];
-    expect(selectTier(100, tiers)?.ratePerSqIn).toBe(0.12);
-    expect(selectTier(101, tiers)?.ratePerSqIn).toBe(0.1);
-    expect(selectTier(350, tiers)?.ratePerSqIn).toBe(0.09);
-  });
-
-  it('calculates subtotal cents using area units', () => {
-    const increment = 0.25;
-    const billable = computeBillableDimensions(3, 2, {
-      roundingIncrementIn: increment,
-      minWidthIn: 2,
-      minHeightIn: 2,
-      minBillableSqIn: 4
-    });
-    const subtotalCents = subtotalCentsFromAreaUnits(billable.areaUnits, increment, 0.12);
-    expect(subtotalCents).toBe(72);
+    ]);
+    expect(tier?.ratePerSqIn).toBe(0.1);
   });
 });

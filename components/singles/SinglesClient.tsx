@@ -2,12 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { PricingTier } from '@prisma/client';
-import {
-  computeBillableDimensions,
-  selectTier,
-  subtotalCentsFromAreaUnits
-} from '@/lib/pricing';
-import { useRouter } from 'next/navigation';
+import { computeBillableDimensions, selectTier } from '@/lib/pricing';
 
 type Settings = {
   roundingIncrementIn: number;
@@ -31,7 +26,6 @@ export default function SinglesClient({
   settings: Settings;
   tiers: PricingTier[];
 }) {
-  const router = useRouter();
   const [items, setItems] = useState<UploadItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,24 +43,16 @@ export default function SinglesClient({
         item.heightIn,
         pricingSettings
       );
-      const lineAreaUnits = billable.areaUnits * item.qty;
-      return { ...item, ...billable, lineAreaUnits };
+      return { ...item, ...billable };
     });
   }, [items, pricingSettings]);
 
-  const totalAreaUnits = enriched.reduce((sum, item) => sum + item.lineAreaUnits, 0);
   const totalSqIn = enriched.reduce(
     (sum, item) => sum + item.billableSqIn * item.qty,
     0
   );
   const tier = tiers.length > 0 ? selectTier(totalSqIn, tiers) : null;
-  const subtotalCents = tier
-    ? subtotalCentsFromAreaUnits(
-        totalAreaUnits,
-        pricingSettings.roundingIncrementIn,
-        tier.ratePerSqIn
-      )
-    : 0;
+  const subtotal = tier ? totalSqIn * tier.ratePerSqIn : 0;
 
   function handleFiles(files: FileList | null) {
     if (!files) return;
@@ -102,18 +88,12 @@ export default function SinglesClient({
       )
     );
 
-    const response = await fetch('/api/singles', {
+    await fetch('/api/singles', {
       method: 'POST',
       body: formData
     });
-    const result = await response.json();
     setSubmitting(false);
-    if (!response.ok) {
-      alert(result.error ?? 'Unable to place order.');
-      return;
-    }
     setItems([]);
-    router.push(`/singles/confirmation?orderId=${result.orderId}&subtotalCents=${result.subtotalCents}`);
   }
 
   return (
@@ -131,7 +111,6 @@ export default function SinglesClient({
       <div className="space-y-4">
         {items.map((item) => {
           const billable = enriched.find((entry) => entry.id === item.id);
-          const lineSqIn = billable ? billable.billableSqIn * item.qty : 0;
           return (
             <div key={item.id} className="rounded border bg-white p-4">
               <div className="flex items-center justify-between">
@@ -182,9 +161,8 @@ export default function SinglesClient({
                 </div>
               </div>
               <div className="mt-3 text-xs text-slate-600">
-                Requested: {item.widthIn}" × {item.heightIn}" · Billable size:{' '}
-                {billable?.billableWidthIn}" × {billable?.billableHeightIn}" · Billable sq in:{' '}
-                {billable?.billableSqIn.toFixed(2)} · Line sq in: {lineSqIn.toFixed(2)}
+                Billable size: {billable?.billableWidthIn}" × {billable?.billableHeightIn}" ·
+                {billable?.billableSqIn} sq in
               </div>
             </div>
           );
@@ -196,14 +174,13 @@ export default function SinglesClient({
           <p>Total square inches: {totalSqIn.toFixed(2)}</p>
           {tier ? (
             <p>
-              Tier: {tier.minSqIn}
-              {tier.maxSqIn ? `- ${tier.maxSqIn}` : '+'} · Rate: ${tier.ratePerSqIn.toFixed(2)}
-              / sq in
+              Tier rate: ${tier.ratePerSqIn.toFixed(2)} per sq in (min {tier.minSqIn}
+              {tier.maxSqIn ? `- ${tier.maxSqIn}` : '+'})
             </p>
           ) : (
             <p>No pricing tiers configured.</p>
           )}
-          <p className="font-semibold">Subtotal: ${(subtotalCents / 100).toFixed(2)}</p>
+          <p className="font-semibold">Subtotal: ${subtotal.toFixed(2)}</p>
         </div>
       </div>
       <button
