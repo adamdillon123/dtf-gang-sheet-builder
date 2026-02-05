@@ -1,3 +1,4 @@
+import type { PricingTier } from "@prisma/client";
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -44,6 +45,13 @@ function validateTierRanges(tiers: z.infer<typeof tierSchema>[]) {
   }
   return null;
 }
+type IncomingTier = {
+  id?: string;
+  minSqIn: number;
+  maxSqIn: number;
+  ratePerSqIn: number;
+  sortOrder: number;
+};
 
 export async function POST(request: Request) {
   const payload = payloadSchema.parse(await request.json());
@@ -63,16 +71,22 @@ export async function POST(request: Request) {
   }
 
   const existingTiers = await prisma.pricingTier.findMany();
-  const existingIds = new Set(existingTiers.map((tier) => tier.id));
-  const incomingIds = new Set(
-    payload.tiers.map((tier) => tier.id).filter((id): id is string => Boolean(id))
-  );
+  const existingIds = new Set(existingTiers.map((tier: PricingTier) => tier.id));
+  const incomingTiers = payload.tiers as IncomingTier[];
 
-  const toDelete = existingTiers.filter((tier) => !incomingIds.has(tier.id));
+const incomingIds = new Set(
+  incomingTiers
+    .map((tier: IncomingTier) => tier.id)
+    .filter((id): id is string => Boolean(id))
+);
+
+ const toDelete = existingTiers.filter(
+  (tier: PricingTier) => !incomingIds.has(tier.id)
+);
 
   await prisma.$transaction([
-    ...toDelete.map((tier) => prisma.pricingTier.delete({ where: { id: tier.id } })),
-    ...payload.tiers.map((tier) => {
+    ...toDelete.map((tier: PricingTier) => prisma.pricingTier.delete({ where: { id: tier.id } })),
+    ...incomingTiers.map((tier: IncomingTier) => {
       if (tier.id && existingIds.has(tier.id)) {
         return prisma.pricingTier.update({
           where: { id: tier.id },
