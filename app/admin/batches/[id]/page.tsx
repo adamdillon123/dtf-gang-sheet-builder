@@ -66,7 +66,7 @@ export default async function BatchDetailPage({
     : null;
 
   const placements = await Promise.all(
-    batch.items.map(async (item) => ({
+    batch.items.map(async (item: any) => ({
       ...item,
       previewUrl: item.orderItem.upload?.originalKey
         ? await getSignedDownloadUrl(item.orderItem.upload.originalKey).catch(() => null)
