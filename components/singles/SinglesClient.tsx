@@ -1,7 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { PricingTier } from '@prisma/client';
+type PricingTier = {
+  id: string;
+  minSqIn: number;
+  maxSqIn: number | null;
+  ratePerSqIn: number;
+  sortOrder: number;
+};
+
 import { computeBillableDimensions, selectTier } from '@/lib/pricing';
 
 type Settings = {
