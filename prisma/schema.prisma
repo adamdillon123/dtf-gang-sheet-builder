@@ -143,13 +143,15 @@ model OrderItem {
 }
 
 model BatchSheet {
-  id        String      @id @default(cuid())
-  createdAt DateTime    @default(now())
-  exportKey String
-  lengthIn  Float
-  status    BatchStatus @default(GENERATED)
-  items     BatchSheetItem[]
+  id           String      @id @default(cuid())
+  createdAt    DateTime    @default(now())
+  exportKey    String
+  thumbnailKey String?     // ✅ ADD THIS LINE
+  lengthIn     Float
+  status       BatchStatus @default(GENERATED)
+  items        BatchSheetItem[]
 }
+
 
 model BatchSheetItem {
   id           String     @id @default(cuid())
