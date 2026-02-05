@@ -1,4 +1,3 @@
-import type { Pricing } from "@prisma/client";
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -70,7 +69,7 @@ export async function POST(request: Request) {
     await prisma.settings.create({ data: payload.settings });
   }
 
-  const existingTiers: Pricing[] = await prisma.pricing.findMany();
+  (tier: typeof existingTiers[number])
   const existingIds = new Set(existingTiers.map((tier: Pricing) => tier.id));
   const incomingTiers = payload.tiers as IncomingTier[];
 
