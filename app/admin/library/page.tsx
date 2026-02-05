@@ -12,7 +12,7 @@ export default async function AdminLibraryPage() {
 
   const assets = await prisma.asset.findMany({ orderBy: { createdAt: 'desc' } });
   const assetsWithUrls = await Promise.all(
-    assets.map(async (asset) => ({
+    assets.map(async (asset: typeof assets[number]) => ({
       asset,
       previewUrl: await getSignedDownloadUrl(asset.previewKey).catch(() => null)
     }))
