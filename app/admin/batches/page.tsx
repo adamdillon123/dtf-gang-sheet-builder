@@ -16,8 +16,7 @@ export default async function AdminBatchesPage() {
   });
 
   const batchLinks = await Promise.all(
-    batch.items.map(async (item: any) => ({
-      batch,
+   batch.items.map(async (item: any) => ({
       url: await getSignedDownloadUrl(batch.exportKey).catch(() => null)
     }))
   );
