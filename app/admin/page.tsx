@@ -13,7 +13,7 @@ export default async function AdminPage() {
   const [ordersCount, queueCount, assetsCount] = await Promise.all([
     prisma.order.count(),
     prisma.orderItem.count({
-      where: { order: { type: 'SINGLES' }, batchSheetItems: { none: {} } }
+      where: { order: { type: 'SINGLES' }, batchSheetItem: null }
     }),
     prisma.asset.count()
   ]);
