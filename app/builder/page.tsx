@@ -1,20 +1,20 @@
-import BuilderClient from '@/components/builder/BuilderClient';
-import { prisma } from '@/lib/prisma';
-import { getSignedDownloadUrl } from '@/lib/storage';
+import BuilderClient from "@/components/builder/BuilderClient";
+import { prisma } from "@/lib/prisma";
+import { getSignedDownloadUrl } from "@/lib/storage";
 
 export default async function BuilderPage() {
   const settings = await prisma.settings.findFirst();
   const assets = await prisma.asset.findMany({
     where: { isActive: true },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: "desc" },
   });
 
   const assetsWithUrls = await Promise.all(
-    assets.map(async (asset) => ({
+    assets.map(async (asset: typeof assets[number]) => ({
       id: asset.id,
       title: asset.title,
       previewUrl: await getSignedDownloadUrl(asset.previewKey).catch(() => null),
-      originalUrl: await getSignedDownloadUrl(asset.originalKey).catch(() => null)
+      originalUrl: await getSignedDownloadUrl(asset.originalKey).catch(() => null),
     }))
   );
 
