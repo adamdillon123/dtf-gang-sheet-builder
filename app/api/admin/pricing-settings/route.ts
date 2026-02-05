@@ -82,7 +82,9 @@ const incomingIds = new Set(
 );
 
   await prisma.$transaction([
-    ...toDelete.map((tier: Pricing) => prisma.pricing.delete({ where: { id: tier.id } })),
+   ...toDelete.map((tier: typeof toDelete[number]) =>
+  prisma.pricing.delete({ where: { id: tier.id } })
+),
     ...incomingTiers.map((tier: IncomingTier) => {
       if (tier.id && existingIds.has(tier.id)) {
         return prisma.pricing.update({
