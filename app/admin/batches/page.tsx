@@ -16,10 +16,11 @@ export default async function AdminBatchesPage() {
   });
 
   const batchLinks = await Promise.all(
-   batch.items.map(async (item: any) => ({
-      url: await getSignedDownloadUrl(batch.exportKey).catch(() => null)
-    }))
-  );
+  batches.map(async (batch) => ({
+    batch,
+    url: await getSignedDownloadUrl(batch.exportKey).catch(() => null),
+  }))
+);
 
   return (
     <section className="space-y-6">
