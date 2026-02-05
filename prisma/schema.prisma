@@ -152,7 +152,6 @@ model BatchSheet {
   items        BatchSheetItem[]
 }
 
-
 model BatchSheetItem {
   id           String     @id @default(cuid())
   batchSheetId String
