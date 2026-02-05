@@ -124,7 +124,7 @@ export default async function AdminSettingsPage() {
       <div className="space-y-2">
         <h2 className="text-xl font-semibold">Pricing Tiers</h2>
         <form action="/api/admin/pricing" method="post" className="space-y-2">
-          {tiers.map((tier) => (
+          {tiers.map((tier: typeof tiers[number]) => (
             <div key={tier.id} className="grid gap-2 md:grid-cols-4">
               <input type="hidden" name="tierId" value={tier.id} />
               <input
