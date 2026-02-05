@@ -1,4 +1,4 @@
-import type { PricingTier } from "@prisma/client";
+import type { Pricing } from "@prisma/client";
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -70,8 +70,8 @@ export async function POST(request: Request) {
     await prisma.settings.create({ data: payload.settings });
   }
 
-  const existingTiers = await prisma.pricingTier.findMany();
-  const existingIds = new Set(existingTiers.map((tier: PricingTier) => tier.id));
+  const existingTiers: Pricing[] = await prisma.pricing.findMany();
+  const existingIds = new Set(existingTiers.map((tier: Pricing) => tier.id));
   const incomingTiers = payload.tiers as IncomingTier[];
 
 const incomingIds = new Set(
@@ -81,14 +81,14 @@ const incomingIds = new Set(
 );
 
  const toDelete = existingTiers.filter(
-  (tier: PricingTier) => !incomingIds.has(tier.id)
+  (tier: Pricing) => !incomingIds.has(tier.id)
 );
 
   await prisma.$transaction([
-    ...toDelete.map((tier: PricingTier) => prisma.pricingTier.delete({ where: { id: tier.id } })),
+    ...toDelete.map((tier: Pricing) => prisma.pricing.delete({ where: { id: tier.id } })),
     ...incomingTiers.map((tier: IncomingTier) => {
       if (tier.id && existingIds.has(tier.id)) {
-        return prisma.pricingTier.update({
+        return prisma.pricing.update({
           where: { id: tier.id },
           data: {
             minSqIn: tier.minSqIn,
@@ -98,7 +98,7 @@ const incomingIds = new Set(
           }
         });
       }
-      return prisma.pricingTier.create({
+      return prisma.pricing.create({
         data: {
           minSqIn: tier.minSqIn,
           maxSqIn: tier.maxSqIn,
