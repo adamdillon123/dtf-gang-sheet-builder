@@ -67,8 +67,7 @@ export async function POST(request: Request) {
     });
   } else {
     await prisma.settings.create({ data: payload.settings });
-  }
-  
+  }  
   (tier: typeof existingTiers[number])
   const existingIds = new Set(existingTiers.map((tier: Pricing) => tier.id));
   const incomingTiers = payload.tiers as IncomingTier[];
