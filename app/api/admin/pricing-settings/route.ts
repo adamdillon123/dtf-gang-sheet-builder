@@ -68,7 +68,8 @@ export async function POST(request: Request) {
   } else {
     await prisma.settings.create({ data: payload.settings });
   }  
-  const existingIds = new Set(existingIds.map((tier: Pricing) => tier.id));
+  const existingTiers = await prisma.pricing.findMany();
+const existingIds = new Set(existingTiers.map((tier: typeof existingTiers[number]) => tier.id));
   const incomingTiers = payload.tiers as IncomingTier[];
 const incomingIds = new Set(
   incomingTiers
@@ -77,7 +78,7 @@ const incomingIds = new Set(
 );
 
  const toDelete = existingTiers.filter(
-  (tier: Pricing) => !incomingIds.has(tier.id)
+  (tier: typeof existingTiers[number]) => !incomingIds.has(tier.id)
 );
 
   await prisma.$transaction([
