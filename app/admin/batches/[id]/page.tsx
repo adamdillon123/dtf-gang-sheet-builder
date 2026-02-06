@@ -80,9 +80,9 @@ export default async function BatchDetailPage({
   }, {});
 
   const itemSummary = placements.reduce<Record<string, number>>((acc, item) => {
-    acc[item.orderItemId] = (acc[item.orderItemId] ?? 0) + 1;
-    return acc;
-  }, {});
+  acc[item.orderItemId] = (acc[item.orderItemId] ?? 0) + 1;
+  return acc;
+}, Object.create(null) as Record<string, number>);
 
   return (
     <section className="space-y-6">
