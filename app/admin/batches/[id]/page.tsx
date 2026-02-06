@@ -123,7 +123,7 @@ export default async function BatchDetailPage({
             </div>
           </dl>
 
-          <BatchActionsClient batchId={batch.id} status={batch.status} notes={batch.notes ?? ''} />
+          <BatchActionsClient batchId={batch.id} status={batch.status}
         </div>
 
         <div className="rounded border bg-white p-4 space-y-3">
