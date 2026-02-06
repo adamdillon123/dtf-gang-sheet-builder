@@ -50,10 +50,11 @@ model Settings {
   maxBatchLengthIn    Float  @default(60)
   watermarkText       String @default("WALL2WALLDTF")
   previewMaxPx        Int    @default(1200)
-  roundingIncrementIn Float  @default(0.25)
-  minWidthIn          Float  @default(2)
-  minHeightIn         Float  @default(2)
-  minBillableSqIn     Float  @default(4)
+
+  roundingIncrementIn Float @default(0.25)
+  minWidthIn          Float @default(2)
+  minHeightIn         Float @default(2)
+  minBillableSqIn     Float @default(4)
 }
 
 model PricingTier {
@@ -74,7 +75,7 @@ model Asset {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  // ✅ Back-reference for OrderItem.asset
+  // inverse relation
   orderItems  OrderItem[]
 }
 
@@ -86,7 +87,7 @@ model Upload {
   heightPx    Int
   createdAt   DateTime @default(now())
 
-  // ✅ Back-reference for OrderItem.upload
+  // inverse relation
   orderItems  OrderItem[]
 }
 
@@ -116,17 +117,17 @@ model Order {
 }
 
 model OrderItem {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   orderId            String
-  order              Order    @relation(fields: [orderId], references: [id])
+  order              Order     @relation(fields: [orderId], references: [id])
 
   sourceType         SourceType
 
   uploadId           String?
-  upload             Upload?  @relation(fields: [uploadId], references: [id])
+  upload             Upload?   @relation(fields: [uploadId], references: [id])
 
   assetId            String?
-  asset              Asset?   @relation(fields: [assetId], references: [id])
+  asset              Asset?    @relation(fields: [assetId], references: [id])
 
   requestedWidthIn   Float
   requestedHeightIn  Float
@@ -134,7 +135,7 @@ model OrderItem {
   billableHeightIn   Float
   billableSqIn       Float
   qty                Int
-  rotationDeg        Float    @default(0)
+  rotationDeg        Float     @default(0)
   xIn                Float?
   yIn                Float?
   effectiveDpiMin    Float?
@@ -145,10 +146,12 @@ model OrderItem {
 model BatchSheet {
   id           String      @id @default(cuid())
   createdAt    DateTime    @default(now())
-  exportKey    String
-  thumbnailKey String?     // ✅ ADD THIS LINE
+  exportKey    String?
+  thumbnailKey String?
   lengthIn     Float
   status       BatchStatus @default(GENERATED)
+  notes        String?
+
   items        BatchSheetItem[]
 }
 
@@ -164,5 +167,5 @@ model BatchSheetItem {
   yIn          Float
   widthIn      Float
   heightIn     Float
-  rotationDeg  Float      @default(0)
+  rotationDeg  Float @default(0)
 }
