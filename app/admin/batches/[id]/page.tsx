@@ -1,31 +1,33 @@
-import Link from 'next/link';
-import { getServerSession } from 'next-auth';
-import { redirect } from 'next/navigation';
-import sharp from 'sharp';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { getObjectBuffer, getSignedDownloadUrl, uploadBuffer } from '@/lib/storage';
-import BatchActionsClient from '@/components/admin/BatchActionsClient';
+import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import sharp from "sharp";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { getObjectBuffer, getSignedDownloadUrl, uploadBuffer } from "@/lib/storage";
+import BatchActionsClient from "@/components/admin/BatchActionsClient";
 
 const SHEET_WIDTH_IN = 22.5;
 
 async function ensureThumbnail(exportKey: string, existingKey: string | null) {
   if (existingKey) return existingKey;
+
   const buffer = await getObjectBuffer(exportKey);
   const thumbnail = await sharp(buffer).resize({ width: 600 }).png().toBuffer();
+
   const thumbKey = `batches/thumbnails/${Date.now()}-thumb.png`;
-  await uploadBuffer(thumbKey, thumbnail, 'image/png');
+  await uploadBuffer(thumbKey, thumbnail, "image/png");
   return thumbKey;
 }
 
 export default async function BatchDetailPage({
-  params
+  params,
 }: {
   params: { id: string };
 }) {
   const session = await getServerSession(authOptions);
   if (!session) {
-    redirect('/admin/login');
+    redirect("/admin/login");
   }
 
   const batch = await prisma.batchSheet.findUnique({
@@ -34,55 +36,58 @@ export default async function BatchDetailPage({
       items: {
         include: {
           orderItem: {
-            include: { order: true, upload: true }
-          }
-        }
-      }
-    }
+            include: { order: true, upload: true },
+          },
+        },
+      },
+    },
   });
 
   if (!batch) {
-    redirect('/admin/batches');
+    redirect("/admin/batches");
   }
 
   const settings = await prisma.settings.findFirst();
 
   const thumbnailKey = batch.exportKey
-    ? await ensureThumbnail(batch.exportKey, batch.thumbnailKey).catch(() => null)
+    ? await ensureThumbnail(batch.exportKey, batch.thumbnailKey ?? null).catch(() => null)
     : null;
 
-  if (thumbnailKey && thumbnailKey !== batch.thumbnailKey) {
+  if (thumbnailKey && thumbnailKey !== (batch.thumbnailKey ?? null)) {
     await prisma.batchSheet.update({
       where: { id: batch.id },
-      data: { thumbnailKey }
+      data: { thumbnailKey },
     });
   }
 
   const previewUrl = thumbnailKey
     ? await getSignedDownloadUrl(thumbnailKey).catch(() => null)
     : null;
+
   const downloadUrl = batch.exportKey
     ? await getSignedDownloadUrl(batch.exportKey).catch(() => null)
     : null;
 
   const placements = await Promise.all(
-    batch.items.map(async (item: any) => ({
+    batch.items.map(async (item: typeof batch.items[number]) => ({
       ...item,
       previewUrl: item.orderItem.upload?.originalKey
         ? await getSignedDownloadUrl(item.orderItem.upload.originalKey).catch(() => null)
-        : null
+        : null,
     }))
   );
 
   const orderSummary = placements.reduce<Record<string, number>>((acc, item) => {
-    acc[item.orderItem.orderId] = (acc[item.orderItem.orderId] ?? 0) + 1;
+    const orderId = item.orderItem.orderId;
+    acc[orderId] = (acc[orderId] ?? 0) + 1;
     return acc;
-  }, {});
+  }, Object.create(null) as Record<string, number>);
 
   const itemSummary = placements.reduce<Record<string, number>>((acc, item) => {
-  acc[item.orderItemId] = (acc[item.orderItemId] ?? 0) + 1;
-  return acc;
-}, Object.create(null) as Record<string, number>);
+    const orderItemId = item.orderItemId;
+    acc[orderItemId] = (acc[orderItemId] ?? 0) + 1;
+    return acc;
+  }, Object.create(null) as Record<string, number>);
 
   return (
     <section className="space-y-6">
@@ -96,6 +101,7 @@ export default async function BatchDetailPage({
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-4 rounded border bg-white p-4">
           <h2 className="text-lg font-semibold">Batch Metadata</h2>
+
           <dl className="grid gap-2 text-sm">
             <div>
               <dt className="text-slate-500">Created</dt>
@@ -123,17 +129,23 @@ export default async function BatchDetailPage({
             </div>
           </dl>
 
-          <BatchActionsClient batchId={batch.id} status={batch.status}
+          <BatchActionsClient batchId={batch.id} status={batch.status} />
         </div>
 
-        <div className="rounded border bg-white p-4 space-y-3">
+        <div className="space-y-3 rounded border bg-white p-4">
           <h2 className="text-lg font-semibold">Export Preview</h2>
+
           {previewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={previewUrl} alt="Batch preview" className="w-full rounded border" />
+            <img
+              src={previewUrl}
+              alt="Batch preview"
+              className="w-full rounded border"
+            />
           ) : (
             <p className="text-sm text-slate-500">No preview available.</p>
           )}
+
           {downloadUrl ? (
             <a href={downloadUrl} className="text-sm text-blue-600">
               Download PNG
@@ -148,7 +160,10 @@ export default async function BatchDetailPage({
         <h2 className="text-lg font-semibold">Included Orders</h2>
         <div className="mt-3 grid gap-2">
           {Object.entries(orderSummary).map(([orderId, count]) => (
-            <div key={orderId} className="flex items-center justify-between text-sm">
+            <div
+              key={orderId}
+              className="flex items-center justify-between text-sm"
+            >
               <span className="font-mono">{orderId}</span>
               <span>{count} placements</span>
             </div>
@@ -158,9 +173,13 @@ export default async function BatchDetailPage({
 
       <div className="rounded border bg-white p-4">
         <h2 className="text-lg font-semibold">Placements</h2>
+
         <div className="mt-4 space-y-3">
           {placements.map((placement) => (
-            <div key={placement.id} className="flex flex-wrap items-center justify-between gap-4 rounded border p-3">
+            <div
+              key={placement.id}
+              className="flex flex-wrap items-center justify-between gap-4 rounded border p-3"
+            >
               <div className="flex items-center gap-4">
                 {placement.previewUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -172,10 +191,14 @@ export default async function BatchDetailPage({
                 ) : (
                   <div className="h-16 w-16 rounded border bg-slate-100" />
                 )}
+
                 <div>
-                  <p className="text-sm font-medium">Order {placement.orderItem.orderId}</p>
+                  <p className="text-sm font-medium">
+                    Order {placement.orderItem.orderId}
+                  </p>
                   <p className="text-xs text-slate-600">
-                    Item {placement.orderItemId} · {placement.orderItem.requestedWidthIn}" ×{' '}
+                    Item {placement.orderItemId} ·{" "}
+                    {placement.orderItem.requestedWidthIn}" ×{" "}
                     {placement.orderItem.requestedHeightIn}"
                   </p>
                   <p className="text-xs text-slate-500">
@@ -183,9 +206,11 @@ export default async function BatchDetailPage({
                   </p>
                 </div>
               </div>
+
               <div className="text-xs text-slate-600">
-                x {placement.xIn.toFixed(2)}" y {placement.yIn.toFixed(2)}" ·
-                {placement.widthIn.toFixed(2)}" × {placement.heightIn.toFixed(2)}"
+                x {placement.xIn.toFixed(2)}" y {placement.yIn.toFixed(2)}" ·{" "}
+                {placement.widthIn.toFixed(2)}" ×{" "}
+                {placement.heightIn.toFixed(2)}"
               </div>
             </div>
           ))}
